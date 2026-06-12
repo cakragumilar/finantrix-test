@@ -147,7 +147,8 @@ export async function completeLesson(
   const actRef = doc(db(), "users", uid, "activity", today);
   batch.set(
     actRef,
-    { lessonsCompleted: increment(1), xpEarned: increment(xpEarned) },
+    // `date` mirrors the doc id so collectionGroup rollups can filter on it
+    { date: today, lessonsCompleted: increment(1), xpEarned: increment(xpEarned) },
     { merge: true }
   );
 
