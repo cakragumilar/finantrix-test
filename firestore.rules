@@ -1,0 +1,108 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+    function isAdmin() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+    function isSuperadmin() {
+      return signedIn() && request.auth.token.superadmin == true;
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid)
+        && request.resource.data.gems == 0
+        && request.resource.data.vip.active == false;
+      // vip is server-written (Admin SDK bypasses rules). Client may not flip it.
+      allow update: if isOwner(uid)
+        && request.resource.data.vip.active == resource.data.vip.active
+        && request.resource.data.vip.plan == resource.data.vip.plan
+        // gems: client may spend any amount or earn at most +50 per write
+        && request.resource.data.gems >= 0
+        && request.resource.data.gems <= resource.data.gems + 50;
+
+      match /lessonProgress/{lessonId} {
+        allow read, write: if isOwner(uid);
+      }
+      match /activity/{day} {
+        allow read, write: if isOwner(uid);
+      }
+      match /drillResults/{id} {
+        allow read, create: if isOwner(uid);
+      }
+    }
+
+    match /modules/{id} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
+    }
+    match /topics/{id} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
+    }
+    match /lessons/{id} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
+    }
+    match /questions/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+      // students may only bump stats counters by exactly 1
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stats'])
+        && request.resource.data.stats.attempts <= resource.data.stats.attempts + 1
+        && request.resource.data.stats.wrong <= resource.data.stats.wrong + 1;
+    }
+
+    match /leagues/{leagueId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+      // clients may open a fresh league shell for their tier when all are full
+      allow create: if signedIn()
+        && request.resource.data.memberCount == 0
+        && request.resource.data.closed == false;
+      // joining bumps memberCount by 1
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount'])
+        && request.resource.data.memberCount == resource.data.memberCount + 1;
+
+      match /members/{uid} {
+        allow read: if signedIn();
+        allow create: if isOwner(uid) && request.resource.data.weeklyXp == 0;
+        // weeklyXp grows by at most 500 per write (one lesson burst)
+        allow update: if isOwner(uid)
+          && request.resource.data.weeklyXp >= resource.data.weeklyXp
+          && request.resource.data.weeklyXp <= resource.data.weeklyXp + 500;
+      }
+    }
+
+    match /transactions/{id} {
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.provider == 'gems';
+      // midtrans/stripe rows are written by Functions only
+    }
+
+    match /adminRoles/{uid} {
+      allow read: if isOwner(uid) || isSuperadmin();
+      allow write: if isSuperadmin();
+    }
+
+    match /config/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /storyState/{uid} {
+      allow read, write: if isOwner(uid);
+    }
+  }
+}

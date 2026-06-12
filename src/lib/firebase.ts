@@ -1,0 +1,43 @@
+import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
+import { getAuth, GoogleAuthProvider, type Auth } from "firebase/auth";
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  type Firestore,
+} from "firebase/firestore";
+
+const config = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "demo",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ?? "demo.firebaseapp.com",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "demo",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? "",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? "",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? "",
+};
+
+let _app: FirebaseApp | null = null;
+let _db: Firestore | null = null;
+
+export function app(): FirebaseApp {
+  if (!_app) _app = getApps()[0] ?? initializeApp(config);
+  return _app;
+}
+
+export function auth(): Auth {
+  return getAuth(app());
+}
+
+export function db(): Firestore {
+  if (!_db) {
+    // Offline persistence: lessons keep working without a connection
+    _db = initializeFirestore(app(), {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
+    });
+  }
+  return _db;
+}
+
+export const googleProvider = new GoogleAuthProvider();

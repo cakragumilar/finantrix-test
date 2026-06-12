@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+@custom-variant dark ([data-theme="dark"] &);
+
+/*
+  Finantrix design tokens. Single source of truth.
+  Never use raw hex values in components; always reference a token utility.
+*/
+:root {
+  --surface: #fafafa;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f0f0f3;
+  --line: #e4e4e9;
+  --ink: #1c1c21;
+  --ink-soft: #5d5d68;
+  --ink-faint: #9a9aa5;
+
+  --accent: #0e9f6e;
+  --accent-strong: #0b7a55;
+  --accent-soft: #e2f5ec;
+  --on-accent: #ffffff;
+
+  --danger: #e23d5b;
+  --danger-strong: #b82646;
+  --danger-soft: #fdeaef;
+
+  --streak: #f59e0b;
+  --streak-strong: #c47b06;
+  --streak-soft: #fdf2dc;
+
+  --gem: #0284c7;
+  --gem-soft: #e0f2fe;
+}
+
+[data-theme="dark"] {
+  --surface: #101014;
+  --surface-raised: #1a1a21;
+  --surface-sunken: #0a0a0d;
+  --line: #2c2c35;
+  --ink: #f1f1f3;
+  --ink-soft: #a3a3af;
+  --ink-faint: #6b6b76;
+
+  --accent: #34d399;
+  --accent-strong: #0e9f6e;
+  --accent-soft: #103326;
+  --on-accent: #08130e;
+
+  --danger: #fb7185;
+  --danger-strong: #e23d5b;
+  --danger-soft: #341219;
+
+  --streak: #fbbf24;
+  --streak-strong: #f59e0b;
+  --streak-soft: #2e2410;
+
+  --gem: #38bdf8;
+  --gem-soft: #0c2435;
+}
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-raised: var(--surface-raised);
+  --color-sunken: var(--surface-sunken);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-danger: var(--danger);
+  --color-danger-strong: var(--danger-strong);
+  --color-danger-soft: var(--danger-soft);
+  --color-streak: var(--streak);
+  --color-streak-strong: var(--streak-strong);
+  --color-streak-soft: var(--streak-soft);
+  --color-gem: var(--gem);
+  --color-gem-soft: var(--gem-soft);
+
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* Shape system: buttons/pills = full radius, cards 16px, inputs 12px */
+  --radius-card: 16px;
+  --radius-input: 12px;
+}
+
+html {
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Numbers are always mono: XP, gems, timers, prices */
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
