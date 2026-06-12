@@ -1,6 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { DEMO_MODE } from "./demo";
+import {
+  DEMO_MODULES,
+  DEMO_TOPICS,
+  DEMO_LESSONS,
+  DEMO_QUESTIONS,
+  DEMO_CONFIG,
+} from "./mock-data";
 import {
   collection,
   doc,
@@ -53,78 +61,109 @@ export function useCol<T = DocumentData>(q: Query | null) {
 export function useModules() {
   const q = useMemo(
     () =>
-      query(
-        collection(db(), "modules"),
-        where("published", "==", true),
-        orderBy("order")
-      ),
+      DEMO_MODE
+        ? null
+        : query(
+            collection(db(), "modules"),
+            where("published", "==", true),
+            orderBy("order")
+          ),
     []
   );
-  return useCol<ModuleDoc>(q);
+  const live = useCol<ModuleDoc>(q);
+  if (DEMO_MODE) return { data: DEMO_MODULES, error: null, loading: false };
+  return live;
 }
 
 export function useTopics(moduleId: string | null) {
   const q = useMemo(
     () =>
-      moduleId
-        ? query(
+      DEMO_MODE || !moduleId
+        ? null
+        : query(
             collection(db(), "topics"),
             where("moduleId", "==", moduleId),
             where("published", "==", true),
             orderBy("order")
-          )
-        : null,
+          ),
     [moduleId]
   );
-  return useCol<TopicDoc>(q);
+  const live = useCol<TopicDoc>(q);
+  if (DEMO_MODE)
+    return {
+      data: moduleId ? DEMO_TOPICS.filter((t) => t.moduleId === moduleId) : [],
+      error: null,
+      loading: false,
+    };
+  return live;
 }
 
 export function useAllTopics() {
   const q = useMemo(
     () =>
-      query(
-        collection(db(), "topics"),
-        where("published", "==", true),
-        orderBy("order")
-      ),
+      DEMO_MODE
+        ? null
+        : query(
+            collection(db(), "topics"),
+            where("published", "==", true),
+            orderBy("order")
+          ),
     []
   );
-  return useCol<TopicDoc>(q);
+  const live = useCol<TopicDoc>(q);
+  if (DEMO_MODE) return { data: DEMO_TOPICS, error: null, loading: false };
+  return live;
 }
 
 export function useLessons(topicId: string | null) {
   const q = useMemo(
     () =>
-      topicId
-        ? query(
+      DEMO_MODE || !topicId
+        ? null
+        : query(
             collection(db(), "lessons"),
             where("topicId", "==", topicId),
             where("published", "==", true),
             orderBy("order")
-          )
-        : null,
+          ),
     [topicId]
   );
-  return useCol<LessonDoc>(q);
+  const live = useCol<LessonDoc>(q);
+  if (DEMO_MODE)
+    return {
+      data: topicId ? DEMO_LESSONS.filter((l) => l.topicId === topicId) : [],
+      error: null,
+      loading: false,
+    };
+  return live;
 }
 
 export function useAllLessons() {
   const q = useMemo(
     () =>
-      query(
-        collection(db(), "lessons"),
-        where("published", "==", true),
-        orderBy("order")
-      ),
+      DEMO_MODE
+        ? null
+        : query(
+            collection(db(), "lessons"),
+            where("published", "==", true),
+            orderBy("order")
+          ),
     []
   );
-  return useCol<LessonDoc>(q);
+  const live = useCol<LessonDoc>(q);
+  if (DEMO_MODE) return { data: DEMO_LESSONS, error: null, loading: false };
+  return live;
 }
 
 /** Fetch a lesson's questions preserving questionIds order (chunked `in` queries). */
 export async function getQuestionsByIds(
   ids: string[]
 ): Promise<WithId<QuestionDoc>[]> {
+  if (DEMO_MODE) {
+    return ids
+      .map((id) => DEMO_QUESTIONS.find((q) => q.id === id))
+      .filter(Boolean) as unknown as WithId<QuestionDoc>[];
+  }
   const out = new Map<string, WithId<QuestionDoc>>();
   for (let i = 0; i < ids.length; i += 10) {
     const chunk = ids.slice(i, i + 10);
@@ -141,6 +180,7 @@ export async function getQuestionsByIds(
 export async function getTopicQuestions(
   topicId: string
 ): Promise<WithId<QuestionDoc>[]> {
+  if (DEMO_MODE) return DEMO_QUESTIONS.filter((q) => q.topicId === topicId) as unknown as WithId<QuestionDoc>[];
   const snap = await getDocs(
     query(collection(db(), "questions"), where("topicId", "==", topicId))
   );
@@ -159,9 +199,11 @@ export const DEFAULT_CONFIG: AppConfigDoc = {
 export function useAppConfig(): AppConfigDoc {
   const [cfg, setCfg] = useState<AppConfigDoc>(DEFAULT_CONFIG);
   useEffect(() => {
+    if (DEMO_MODE) return;
     return onSnapshot(doc(db(), "config", "app"), (snap) => {
       if (snap.exists()) setCfg({ ...DEFAULT_CONFIG, ...(snap.data() as Partial<AppConfigDoc>) });
     });
   }, []);
+  if (DEMO_MODE) return DEMO_CONFIG;
   return cfg;
 }

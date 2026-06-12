@@ -7,6 +7,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { GoogleLogoIcon, ChartLineUpIcon } from "@phosphor-icons/react";
 import { signInWithGoogle, useAuth } from "@/lib/auth";
 import { Button, ErrorNote } from "@/components/ui";
+import { DEMO_MODE } from "@/lib/demo";
 
 export default function MasukPage() {
   const { user, loading } = useAuth();
@@ -18,6 +19,11 @@ export default function MasukPage() {
   useEffect(() => {
     if (!loading && user) router.replace("/belajar");
   }, [user, loading, router]);
+
+  // Demo mode: auto-redirect since we're already "signed in"
+  useEffect(() => {
+    if (DEMO_MODE) router.replace("/belajar");
+  }, [router]);
 
   async function handleLogin() {
     setBusy(true);

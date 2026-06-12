@@ -23,6 +23,7 @@ import {
 import { auth, db, googleProvider } from "./firebase";
 import { MAX_HEARTS } from "./constants";
 import type { UserDoc } from "./types";
+import { DEMO_MODE, DEMO_UID, getDemoProfile, onDemoProfileChange } from "./demo";
 
 interface AuthState {
   user: User | null;
@@ -82,6 +83,22 @@ export function Providers({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
+    if (DEMO_MODE) {
+      const tid = setTimeout(() => {
+        setState({
+          user: { uid: DEMO_UID, displayName: "Demo Pelajar", email: "demo@finantrix.id", photoURL: "" } as unknown as User,
+          profile: getDemoProfile(),
+          isAdmin: false,
+          isSuperadmin: false,
+          loading: false,
+        });
+      }, 0);
+      const unsub = onDemoProfileChange((p) =>
+        setState((prev) => ({ ...prev, profile: p }))
+      );
+      return () => { clearTimeout(tid); unsub(); };
+    }
+
     let unsubProfile: (() => void) | null = null;
     const unsubAuth = onAuthStateChanged(auth(), async (u) => {
       unsubProfile?.();
@@ -114,9 +131,11 @@ export function Providers({ children }: { children: ReactNode }) {
 }
 
 export async function signInWithGoogle() {
+  if (DEMO_MODE) return; // already signed in as demo user
   await signInWithPopup(auth(), googleProvider);
 }
 
 export async function signOut() {
+  if (DEMO_MODE) return;
   await fbSignOut(auth());
 }

@@ -18,6 +18,7 @@ import {
 } from "./constants";
 import { wibToday, wibYesterday } from "./dates";
 import type { AppConfigDoc, UserDoc } from "./types";
+import { DEMO_MODE, patchDemoProfile } from "./demo";
 
 /* ---------------- Hearts ---------------- */
 
@@ -39,6 +40,11 @@ export function effectiveHearts(
 
 export async function spendHeart(uid: string, user: UserDoc, cfg: AppConfigDoc) {
   if (user.vip.active) return;
+  if (DEMO_MODE) {
+    const { hearts } = effectiveHearts(user, cfg);
+    patchDemoProfile((p) => ({ ...p, hearts: { ...p.hearts, current: Math.max(0, hearts - 1) } }));
+    return;
+  }
   const { hearts } = effectiveHearts(user, cfg);
   const next = Math.max(0, hearts - 1);
   await updateDoc(doc(db(), "users", uid), {
@@ -48,6 +54,11 @@ export async function spendHeart(uid: string, user: UserDoc, cfg: AppConfigDoc) 
 }
 
 export async function addHearts(uid: string, user: UserDoc, cfg: AppConfigDoc, n: number) {
+  if (DEMO_MODE) {
+    const { hearts } = effectiveHearts(user, cfg);
+    patchDemoProfile((p) => ({ ...p, hearts: { ...p.hearts, current: Math.min(p.hearts.max, hearts + n) } }));
+    return;
+  }
   const { hearts } = effectiveHearts(user, cfg);
   await updateDoc(doc(db(), "users", uid), {
     "hearts.current": Math.min(user.hearts.max, hearts + n),
@@ -115,6 +126,25 @@ export async function completeLesson(
     newBadges.push("perfeksionis");
   }
 
+  if (DEMO_MODE) {
+    const today = wibToday();
+    patchDemoProfile((p) => ({
+      ...p,
+      xpTotal: p.xpTotal + xpEarned,
+      xpWeekly: p.xpWeekly + xpEarned,
+      gems: p.gems + gemsEarned,
+      streak: {
+        ...p.streak,
+        current: streak.current,
+        longest: Math.max(p.streak.longest, streak.current),
+        lastActiveDate: streak.increased ? today : p.streak.lastActiveDate,
+        freezes: streak.usedFreeze ? Math.max(0, p.streak.freezes - 1) : p.streak.freezes,
+      },
+      badges: newBadges.length ? [...p.badges, ...newBadges] : p.badges,
+    }));
+    return { xpEarned, streak, gemsEarned, newBadges };
+  }
+
   const batch = writeBatch(db());
   const userRef = doc(db(), "users", uid);
   batch.update(userRef, {
@@ -179,6 +209,7 @@ export async function recordDrill(
     weakTags: string[];
   }
 ) {
+  if (DEMO_MODE) return;
   const ref = doc(collection(db(), "users", uid, "drillResults"));
   await setDoc(ref, {
     ...args,
@@ -191,6 +222,7 @@ export async function recordDrill(
 /* ---------------- Question stats ---------------- */
 
 export async function bumpQuestionStats(questionId: string, wrong: boolean) {
+  if (DEMO_MODE) return;
   try {
     await updateDoc(doc(db(), "questions", questionId), {
       "stats.attempts": increment(1),
@@ -209,6 +241,18 @@ export async function buyWithGems(
   cfg: AppConfigDoc,
   kind: "hearts" | "streak_freeze"
 ) {
+  if (DEMO_MODE) {
+    const price = kind === "hearts" ? cfg.gemPricePerHeart : cfg.gemPriceStreakFreeze;
+    if (user.gems < price) throw new Error("Permata tidak cukup");
+    patchDemoProfile((p) => ({
+      ...p,
+      gems: p.gems - price,
+      ...(kind === "hearts"
+        ? { hearts: { ...p.hearts, current: Math.min(p.hearts.max, p.hearts.current + 1) } }
+        : { streak: { ...p.streak, freezes: p.streak.freezes + 1 } }),
+    }));
+    return;
+  }
   const price =
     kind === "hearts" ? cfg.gemPricePerHeart : cfg.gemPriceStreakFreeze;
   if (user.gems < price) throw new Error("Permata tidak cukup");

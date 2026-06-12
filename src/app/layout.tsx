@@ -3,6 +3,7 @@ import { Outfit, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/lib/auth";
 import { PwaRegister } from "@/components/pwa";
+import { DemoBanner } from "@/components/demo-banner";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -47,7 +48,10 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
       </head>
       <body className="min-h-full flex flex-col bg-surface text-ink">
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <DemoBanner />
+        </Providers>
         <PwaRegister />
       </body>
     </html>
